@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getMoviesFromRedis } from '@/lib/redis'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -8,9 +7,14 @@ interface PageProps {
 
 export default async function MovieDetail({ params }: PageProps) {
   const { id } = await params
-  const movieId = parseInt(id)
-  const movies = await getMoviesFromRedis()
-  const movie = movies?.find((m: any) => m.id === movieId)
+  
+  const res = await fetch(`/api/movies?id=${id}`, {
+    cache: 'no-store'
+  })
+  
+  if (!res.ok) notFound()
+  
+  const { movie } = await res.json()
 
   if (!movie) notFound()
 
