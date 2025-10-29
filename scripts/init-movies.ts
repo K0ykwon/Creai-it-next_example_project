@@ -1,6 +1,11 @@
 import Redis from 'ioredis'
+import { config } from 'dotenv'
+import { resolve } from 'path'
 
-// 영화 데이터
+// .env.local 파일 로드
+config({ path: resolve(process.cwd(), '.env.local') })
+
+
 const moviesData = [
   {
     id: 1,
@@ -45,58 +50,55 @@ const moviesData = [
 ]
 
 async function initMovies() {
-  // 환경 변수에서 Redis 설정 가져오기
-  const redisUrl = process.env.REDIS_URL
-
-  let redis: Redis
-
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
+  
+  if (!process.env.REDIS_URL) {
+    console.log('ℹ️  REDIS_URL 환경 변수가 없어 기본값(localhost:6379)을 사용합니다.')
+  }
+  
+  console.log(`🔄 Redis 연결 시도 중... (${redisUrl})`)
+  
   try {
-    redis = new Redis(redisUrl!, {
+    const redis = new Redis(redisUrl, {
+      connectTimeout: 5000,
       retryStrategy: (times: number) => {
-        if (times > 3) {
-          return null
-        }
+        if (times > 3) return null
         return Math.min(times * 200, 2000)
       },
     })
 
-    console.log('🔄 Redis 연결 시도 중...')
+    await new Promise<void>((resolvePromise, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Redis 연결 타임아웃 (5초)'))
+      }, 5000)
 
-    // 연결 대기
-    await new Promise<void>((resolve, reject) => {
       redis.on('connect', () => {
+        clearTimeout(timeout)
         console.log('✅ Redis 연결 성공!')
-        resolve()
+        resolvePromise()
       })
 
       redis.on('error', (err) => {
-        console.error('❌ Redis 연결 실패:', err.message)
+        clearTimeout(timeout)
         reject(err)
       })
 
-      // 이미 연결되어 있는 경우
       if (redis.status === 'ready') {
-        resolve()
+        clearTimeout(timeout)
+        resolvePromise()
       }
     })
 
-    // 영화 목록을 Redis에 저장
-    const moviesListKey = 'movies:list'
-    await redis.set(moviesListKey, JSON.stringify(moviesData))
+    await redis.set('movies:list', JSON.stringify(moviesData))
     console.log(`✅ 영화 목록 저장 완료 (${moviesData.length}개 영화)`)
-
-    // (주의) 영화 목록만 저장합니다. 개별 영화/프롬프트 키는 사용하지 않습니다.
-
     console.log('\n🎉 영화 데이터 초기화 완료!')
+    
     
     await redis.quit()
   } catch (error: any) {
-    console.error('❌ 오류 발생:', error.message)
-    console.error('\n💡 Redis가 실행 중인지 확인해주세요.')
-    console.error('   로컬 Redis: redis-server 명령어로 실행')
+    console.error('\n❌ Redis 연결 실패')
     process.exit(1)
   }
 }
 
-// 스크립트 실행
 initMovies()

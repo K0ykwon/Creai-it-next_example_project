@@ -14,13 +14,11 @@ export default async function Home() {
   
   try {
     const moviesData = await getMoviesFromRedis()
-    if (moviesData && Array.isArray(moviesData) && moviesData.length > 0) {
-      movies = moviesData
-    }
+    if (moviesData?.length) movies = moviesData
   } catch (error) {
     console.error('영화 데이터 로딩 오류:', error)
-    movies = []
   }
+
   return (
     <main>
       <div className="header">
@@ -31,14 +29,10 @@ export default async function Home() {
       
       <div className="container">
         <div className="nav-links">
-          <Link href="/chat" className="nav-link">
-            💬 영화 챗봇과 대화하기
-          </Link>
+          <Link href="/chat" className="nav-link">💬 영화 챗봇과 대화하기</Link>
         </div>
         
-        <h2 style={{ marginBottom: '20px', fontSize: '1.5rem' }}>
-          인기 영화 목록
-        </h2>
+        <h2 style={{ marginBottom: '20px', fontSize: '1.5rem' }}>인기 영화 목록</h2>
         
         {movies.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
@@ -50,19 +44,15 @@ export default async function Home() {
         ) : (
           <div className="movie-grid">
             {movies.map((movie) => (
-            <Link 
-              key={movie.id} 
-              href={`/movies/${movie.id}`}
-              style={{ textDecoration: 'none' }}
-            >
-              <div className="movie-card">
-                <h2>{movie.title}</h2>
-                <p className="year">출시년도: {movie.year}</p>
-                <p>감독: {movie.director}</p>
-                <p>{movie.description}</p>
-              </div>
-            </Link>
-          ))}
+              <Link key={movie.id} href={`/movies/${movie.id}`} style={{ textDecoration: 'none' }}>
+                <div className="movie-card">
+                  <h2>{movie.title}</h2>
+                  <p className="year">출시년도: {movie.year}</p>
+                  <p>감독: {movie.director}</p>
+                  <p>{movie.description}</p>
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </div>

@@ -8,68 +8,49 @@ interface Message {
   content: string
 }
 
+const initialMessage: Message = {
+  role: 'assistant',
+  content: '안녕하세요! 영화에 대해 물어보세요. 예를 들어 "인셉션 줄거리 알려줘" 또는 "봉준호 감독 영화 추천해줘"라고 물어보실 수 있습니다.'
+}
+
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: '안녕하세요! 영화에 대해 물어보세요. 예를 들어 "인셉션 줄거리 알려줘" 또는 "봉준호 감독 영화 추천해줘"라고 물어보실 수 있습니다.'
-    }
-  ])
+  const [messages, setMessages] = useState<Message[]>([initialMessage])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
   useEffect(() => {
-    scrollToBottom()
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!input.trim() || isLoading) return
 
-    const userMessage: Message = {
-      role: 'user',
-      content: input
-    }
-
-    setMessages(prev => [...prev, userMessage])
+    const userMessage: Message = { role: 'user', content: input }
+    const updatedMessages = [...messages, userMessage]
+    
+    setMessages(updatedMessages)
     setInput('')
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/chat', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage]
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: updatedMessages }),
       })
 
-      if (!response.ok) {
-        throw new Error('응답을 받는데 실패했습니다')
-      }
+      if (!res.ok) throw new Error('응답 실패')
 
-      const data = await response.json()
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.message
-      }
-
-      setMessages(prev => [...prev, assistantMessage])
+      const { message } = await res.json()
+      setMessages(prev => [...prev, { role: 'assistant', content: message }])
     } catch (error) {
-      console.error('Error:', error)
-      const errorMessage: Message = {
-        role: 'assistant',
-        content: '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.'
-      }
-      setMessages(prev => [...prev, errorMessage])
+      console.error(error)
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.' 
+      }])
     } finally {
       setIsLoading(false)
     }
@@ -84,20 +65,15 @@ export default function ChatPage() {
       </div>
 
       <div className="container">
-        <Link href="/" className="back-link">
-          ← 홈으로 돌아가기
-        </Link>
+        <Link href="/" className="back-link">← 홈으로 돌아가기</Link>
 
         <div className="chat-container">
           <div className="chat-messages">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`message ${message.role === 'user' ? 'user-message' : 'assistant-message'}`}
-              >
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.role}-message`}>
                 <div className="message-content">
-                  <strong>{message.role === 'user' ? '나' : '영화 챗봇'}</strong>
-                  <p>{message.content}</p>
+                  <strong>{msg.role === 'user' ? '나' : '영화 챗봇'}</strong>
+                  <p>{msg.content}</p>
                 </div>
               </div>
             ))}
