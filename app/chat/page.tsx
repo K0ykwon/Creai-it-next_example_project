@@ -16,7 +16,6 @@ const initialMessage: Message = {
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([initialMessage])
   const [input, setInput] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -25,35 +24,22 @@ export default function ChatPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
+    if (!input.trim()) return
 
     const userMessage: Message = { role: 'user', content: input }
     const updatedMessages = [...messages, userMessage]
     
     setMessages(updatedMessages)
     setInput('')
-    setIsLoading(true)
 
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: updatedMessages }),
-      })
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: updatedMessages }),
+    })
 
-      if (!res.ok) throw new Error('응답 실패')
-
-      const { message } = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: message }])
-    } catch (error) {
-      console.error(error)
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.' 
-      }])
-    } finally {
-      setIsLoading(false)
-    }
+    const { message } = await res.json()
+    setMessages(prev => [...prev, { role: 'assistant', content: message }])
   }
 
   return (
@@ -78,15 +64,6 @@ export default function ChatPage() {
               </div>
             ))}
             
-            {isLoading && (
-              <div className="message assistant-message">
-                <div className="message-content">
-                  <strong>영화 챗봇</strong>
-                  <p>답변을 생각하고 있어요...</p>
-                </div>
-              </div>
-            )}
-            
             <div ref={messagesEndRef} />
           </div>
 
@@ -97,13 +74,8 @@ export default function ChatPage() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="영화에 대해 물어보세요..."
               className="chat-input"
-              disabled={isLoading}
             />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="chat-button"
-            >
+            <button type="submit" disabled={!input.trim()} className="chat-button">
               전송
             </button>
           </form>

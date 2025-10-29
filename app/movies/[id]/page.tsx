@@ -9,15 +9,8 @@ interface PageProps {
 export default async function MovieDetail({ params }: PageProps) {
   const { id } = await params
   const movieId = parseInt(id)
-  
-  let movie
-  try {
-    const movies = await getMoviesFromRedis()
-    movie = movies?.find((m: any) => m.id === movieId) || null
-  } catch (error) {
-    console.error('영화 데이터 가져오기 오류:', error)
-    movie = null
-  }
+  const movies = await getMoviesFromRedis()
+  const movie = movies?.find((m: any) => m.id === movieId)
 
   if (!movie) notFound()
 
