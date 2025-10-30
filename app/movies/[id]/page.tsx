@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -8,7 +9,12 @@ interface PageProps {
 export default async function MovieDetail({ params }: PageProps) {
   const { id } = await params
   
-  const res = await fetch(`/api/movies?id=${id}`, {
+  const hdrs = headers()
+  const host = hdrs.get('host')
+  const protocol = hdrs.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'production' ? 'https' : 'http')
+  const baseUrl = `${protocol}://${host}`
+
+  const res = await fetch(`${baseUrl}/api/movies?id=${id}`, {
     cache: 'no-store'
   })
   
